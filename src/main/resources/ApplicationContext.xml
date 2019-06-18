@@ -1,0 +1,73 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+http://www.springframework.org/schema/beans/spring-beans-2.5.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/integration https://www.springframework.org/schema/integration/spring-integration.xsd http://www.springframework.org/schema/integration https://www.springframework.org/schema/integration/spring-integration.xsd
+		http://www.springframework.org/schema/integration/mail https://www.springframework.org/schema/integration/mail/spring-integration-mail.xsd
+		http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd"
+       xmlns:int="http://www.springframework.org/schema/integration"
+       xmlns:int-mail="http://www.springframework.org/schema/integration/mail"
+       xmlns:util="http://www.springframework.org/schema/util">
+
+    <context:property-placeholder location="classpath*:Configuration.properties"/>
+
+    <int:channel id="receiveChannel" />
+    <!-- replace 'userid and 'password' with the real values -->
+    <int-mail:imap-idle-channel-adapter id="customAdapter"
+                                        store-uri="imaps://luxoftintechtask:luxoft1234@imap.gmail.com:993/inbox"
+                                        channel="receiveChannel"
+                                        auto-startup="true"
+                                        should-delete-messages="false"
+                                        java-mail-properties="javaMailProperties"/>
+
+    <util:properties id="javaMailProperties">
+        <prop key="mail.imap.socketFactory.class">javax.net.ssl.SSLSocketFactory</prop>
+        <prop key="mail.imap.socketFactory.fallback">false</prop>
+        <prop key="mail.store.protocol">imaps</prop>
+        <prop key="mail.debug">false</prop>
+    </util:properties>
+
+
+    <bean id="emailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
+        <property name="host" value="smtp.gmail.com" />
+        <property name="port" value="587" />
+        <property name="username" value="luxoftintechtask" />
+        <property name="password" value="luxoft1234" />
+
+        <property name="javaMailProperties">
+            <props>
+                <prop key="mail.smtp.auth">true</prop>
+                <prop key="mail.smtp.starttls.enable">true</prop>
+            </props>
+        </property>
+    </bean>
+
+    <bean id="myProperties"
+          class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="locations">
+            <list>
+                <value>classpath*:Configuration.properties</value>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="AESSecureEmail" class="com.luxoft.email.service.AESSecureEmailServiceImpl">
+        <property name="emailSender" ref="emailSender" />
+    </bean>
+
+    <bean id="DESSecureEmail" class="com.luxoft.email.service.DESSecureEmailServiceImpl">
+        <property name="emailSender" ref="emailSender" />
+    </bean>
+
+    <bean id="NonSecureEmail" class="com.luxoft.email.service.NonSecureEmailServiceImpl">
+        <property name="emailSender" ref="emailSender" />
+    </bean>
+
+    <bean id="SecureEmail" class="com.luxoft.email.service.SecureEmailServiceImpl">
+        <property name="emailSender" ref="emailSender" />
+    </bean>
+
+
+
+</beans>
+

@@ -1,0 +1,56 @@
+package com.luxoft.email.utils;
+
+import com.luxoft.email.model.Email;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PropertiesLoaderUtils;
+
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.logging.Logger;
+
+/**
+ * created by @ubayram
+ * 17 June 2019
+ */
+public class EmailUtils {
+    private static Properties properties;
+    private static final String confFile = "Configuration.properties";
+    private final static Logger LOGGER = Logger.getLogger(EmailUtils.class.getName());
+
+    static {
+        Resource resource = new ClassPathResource(confFile);
+        try {
+            properties = PropertiesLoaderUtils.loadProperties(resource);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static Email getEmail(int taskNum) {
+        return new Email(properties.getProperty("EMAIL_FROM"),
+                properties.getProperty("EMAIL_TO"),
+                properties.getProperty("EMAIL_SUBJECT_TASK" + taskNum),
+                properties.getProperty("EMAIL_MSG_TASK" + taskNum),
+                Integer.valueOf(properties.getProperty("MAX_RETRY_COUNT")));
+    }
+
+    public static String getMailContent(MimeMessage message){
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        String strContent = "";
+        try {
+            message.writeTo(out);
+            strContent = out.toString();
+        } catch (IOException e) {
+            LOGGER.severe("=====>>" + e.getMessage());
+        } catch (MessagingException e) {
+            LOGGER.severe("=====>>" + e.getMessage());
+        }
+        return strContent;
+    }
+
+
+}
