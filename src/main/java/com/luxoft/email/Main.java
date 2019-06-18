@@ -71,9 +71,7 @@ public class Main {
                         desSecureEmailQueue.put(emailDES);
                     }
                 }
-            } catch (MessagingException e) {
-                LOGGER.severe("=====>>" + e.getMessage());
-            } catch (InterruptedException e) {
+            } catch (MessagingException | InterruptedException e) {
                 LOGGER.severe("=====>>" + e.getMessage());
             }
         });
@@ -100,9 +98,7 @@ public class Main {
                         aesSecureEmailQueue.put(emailAES);
                     }
                 }
-            } catch (MessagingException e) {
-                LOGGER.severe("=====>>" + e.getMessage());
-            } catch (InterruptedException e) {
+            } catch (MessagingException | InterruptedException e) {
                 LOGGER.severe("=====>>" + e.getMessage());
             }
         });

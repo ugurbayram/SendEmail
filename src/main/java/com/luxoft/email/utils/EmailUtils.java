@@ -44,9 +44,7 @@ public class EmailUtils {
         try {
             message.writeTo(out);
             strContent = out.toString();
-        } catch (IOException e) {
-            LOGGER.severe("=====>>" + e.getMessage());
-        } catch (MessagingException e) {
+        } catch (IOException | MessagingException e) {
             LOGGER.severe("=====>>" + e.getMessage());
         }
         return strContent;
