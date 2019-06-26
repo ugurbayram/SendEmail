@@ -13,6 +13,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
+import java.util.Properties;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -28,23 +29,23 @@ public class Main {
 
     private final static Logger LOGGER = Logger.getLogger(Main.class.getName());
     private static ApplicationContext context = null;
-    private JavaMailSenderImpl mailSender = null;
-
-    public Main() {
-
-    }
+    private static int TASK_NUMBER_1 = 1;
+    private static int TASK_NUMBER_2 = 2;
+    private static int TASK_NUMBER_3 = 3;
+    private static int TASK_NUMBER_4 = 4;
 
     public static void main(String[] args) {
         // Channel to monitor sender's inbox.
         context = new ClassPathXmlApplicationContext("ApplicationContext.xml");
         DirectChannel inputChannel = context.getBean("receiveChannel", DirectChannel.class);
         ExecutorService executorService = Executors.newFixedThreadPool(10);
+        Properties properties = (Properties) context.getBean("myProperties");
 
         //TASK#1 Initialize thread to send email to outsider with non-encryption
         NonSecureEmailServiceImpl nonSecureEmailService = (NonSecureEmailServiceImpl) context.getBean("NonSecureEmail");
         BlockingQueue nonSecureEmailQueue = new ArrayBlockingQueue<Email>(3);
         try {
-            Email emailNon = EmailUtils.getEmail(1);
+            Email emailNon = EmailUtils.getEmail(TASK_NUMBER_1,properties);
             nonSecureEmailQueue.put(emailNon);
             nonSecureEmailService.setQueue(nonSecureEmailQueue);
             executorService.submit(nonSecureEmailService);
@@ -55,7 +56,7 @@ public class Main {
         //TASK#2 Initialize thread to send email to insider with DES Encryption
         DESSecureEmailServiceImpl desSecureEmailService = (DESSecureEmailServiceImpl) context.getBean("DESSecureEmail");
         BlockingQueue desSecureEmailQueue = new ArrayBlockingQueue<Email>(3);
-        Email emailDES = EmailUtils.getEmail(2);
+        Email emailDES = EmailUtils.getEmail(TASK_NUMBER_2,properties);
         try {
             desSecureEmailQueue.put(emailDES);
         } catch (InterruptedException e) {
@@ -67,7 +68,7 @@ public class Main {
         //TASK#3 Initialize thread to send email to outsider AES Encryption
         AESSecureEmailServiceImpl aesSecureEmailService = (AESSecureEmailServiceImpl) context.getBean("AESSecureEmail");
         BlockingQueue aesSecureEmailQueue = new ArrayBlockingQueue<Email>(3);
-        Email emailAES = EmailUtils.getEmail(3);
+        Email emailAES = EmailUtils.getEmail(TASK_NUMBER_3,properties);
         try {
             aesSecureEmailQueue.put(emailAES);
         } catch (InterruptedException e) {
@@ -80,7 +81,7 @@ public class Main {
         SecureEmailServiceImpl secureEmailService = (SecureEmailServiceImpl) context.getBean("SecureEmail");
         BlockingQueue secureEmailQueue = new ArrayBlockingQueue<Email>(3);
         try {
-            Email emailSec = EmailUtils.getEmail(4);
+            Email emailSec = EmailUtils.getEmail(TASK_NUMBER_4,properties);
             secureEmailQueue.put(emailSec);
         } catch (InterruptedException e) {
             LOGGER.severe("=====>>" + e.getMessage());

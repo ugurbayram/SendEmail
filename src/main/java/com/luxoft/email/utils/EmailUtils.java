@@ -17,20 +17,10 @@ import java.util.logging.Logger;
  * 17 June 2019
  */
 public class EmailUtils {
-    private static Properties properties;
-    private static final String confFile = "Configuration.properties";
+
     private final static Logger LOGGER = Logger.getLogger(EmailUtils.class.getName());
 
-    static {
-        Resource resource = new ClassPathResource(confFile);
-        try {
-            properties = PropertiesLoaderUtils.loadProperties(resource);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static Email getEmail(int taskNum) {
+    public static Email getEmail(int taskNum, Properties properties) {
         return new Email(properties.getProperty("EMAIL_FROM"),
                 properties.getProperty("EMAIL_TO"),
                 properties.getProperty("EMAIL_SUBJECT_TASK" + taskNum),
