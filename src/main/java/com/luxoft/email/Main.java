@@ -15,6 +15,8 @@ import javax.mail.MessagingException;
 import javax.mail.internet.MimeMessage;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
 /**
@@ -33,10 +35,9 @@ public class Main {
     }
 
     public static void main(String[] args) {
-        Main main = new Main();
-
         // Channel to monitor sender's inbox.
         DirectChannel inputChannel = context.getBean("receiveChannel", DirectChannel.class);
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
 
         //TASK#1 Initialize thread to send email to outsider with non-encryption
         NonSecureEmailServiceImpl nonSecureEmailService = (NonSecureEmailServiceImpl) context.getBean("NonSecureEmail");
@@ -44,12 +45,11 @@ public class Main {
         try {
             Email emailNon = EmailUtils.getEmail(1);
             nonSecureEmailQueue.put(emailNon);
+            nonSecureEmailService.setQueue(nonSecureEmailQueue);
+            executorService.submit(nonSecureEmailService);
         } catch (InterruptedException e) {
             LOGGER.severe("=====>>" + e.getMessage());
         }
-        nonSecureEmailService.setQueue(nonSecureEmailQueue);
-        Thread nonSecureEmailThread = new Thread(nonSecureEmailService);
-        nonSecureEmailThread.start();
 
         //TASK#2 Initialize thread to send email to insider with DES Encryption
         DESSecureEmailServiceImpl desSecureEmailService = (DESSecureEmailServiceImpl) context.getBean("DESSecureEmail");
@@ -61,22 +61,7 @@ public class Main {
             LOGGER.severe("=====>>" + e.getMessage());
         }
         desSecureEmailService.setQueue(desSecureEmailQueue);
-        inputChannel.subscribe(message -> {
-            MimeMessage receivedMessage = (MimeMessage) message.getPayload();
-            try {
-                if (receivedMessage.getSubject().indexOf("Delivery Status Notification (Failure)") > -1 && emailDES.retryCount > 0) {
-                    if (EmailUtils.getMailContent(receivedMessage).indexOf(emailDES.getSubject()) > -1) {
-                        LOGGER.info("=====>>" + receivedMessage.getSubject() + " for "+emailDES.getSubject());
-                        emailDES.retryCount--;
-                        desSecureEmailQueue.put(emailDES);
-                    }
-                }
-            } catch (MessagingException | InterruptedException e) {
-                LOGGER.severe("=====>>" + e.getMessage());
-            }
-        });
-        Thread desSecureEmailThread = new Thread(desSecureEmailService);
-        desSecureEmailThread.start();
+        executorService.submit(desSecureEmailService);
 
         //TASK#3 Initialize thread to send email to outsider AES Encryption
         AESSecureEmailServiceImpl aesSecureEmailService = (AESSecureEmailServiceImpl) context.getBean("AESSecureEmail");
@@ -88,23 +73,7 @@ public class Main {
             LOGGER.severe("=====>>" + e.getMessage());
         }
         aesSecureEmailService.setQueue(aesSecureEmailQueue);
-        inputChannel.subscribe(message -> {
-            MimeMessage receivedMessage = (MimeMessage) message.getPayload();
-            try {
-                if (receivedMessage.getSubject().indexOf("Delivery Status Notification (Failure)") > -1 && emailAES.retryCount > 0) {
-                    if (EmailUtils.getMailContent(receivedMessage).indexOf(emailAES.getSubject()) > -1) {
-                        LOGGER.info("=====>>" + receivedMessage.getSubject()+" for "+ emailAES.getSubject());
-                        emailAES.retryCount--;
-                        aesSecureEmailQueue.put(emailAES);
-                    }
-                }
-            } catch (MessagingException | InterruptedException e) {
-                LOGGER.severe("=====>>" + e.getMessage());
-            }
-        });
-        Thread aesSecureEmailThread = new Thread(aesSecureEmailService);
-        aesSecureEmailThread.start();
-
+        executorService.submit(aesSecureEmailService);
 
         //TASK#4 Initialize thread to send email to outsider with AES and DES Secure Encryption
         SecureEmailServiceImpl secureEmailService = (SecureEmailServiceImpl) context.getBean("SecureEmail");
@@ -116,16 +85,34 @@ public class Main {
             LOGGER.severe("=====>>" + e.getMessage());
         }
         secureEmailService.setQueue(secureEmailQueue);
-        Thread secureEmailThread = new Thread(secureEmailService);
-        secureEmailThread.start();
+        executorService.submit(secureEmailService);
 
-        try {
-            nonSecureEmailThread.join();
-            aesSecureEmailThread.join();
-            desSecureEmailThread.join();
-            secureEmailThread.join();
-        } catch (InterruptedException e) {
-            LOGGER.severe("=====>>" + e.getMessage());
-        }
+        inputChannel.subscribe(message -> {
+            MimeMessage receivedMessage = (MimeMessage) message.getPayload();
+            try {
+                //TASK #2 Retry (Push mail to retry queue)
+                if (receivedMessage.getSubject().indexOf("Delivery Status Notification (Failure)") > -1
+                        && EmailUtils.getMailContent(receivedMessage).indexOf(emailDES.getSubject()) > -1
+                        && emailDES.retryCount > 0) {
+
+                    LOGGER.info("=====>>" + receivedMessage.getSubject() + " for " + emailDES.getSubject());
+                    LOGGER.info("Retry sending emailDES, retryCount=" + emailDES.retryCount);
+                    emailDES.retryCount--;
+                    desSecureEmailQueue.put(emailDES);
+                } else if (receivedMessage.getSubject().indexOf("Delivery Status Notification (Failure)") > -1
+                        && EmailUtils.getMailContent(receivedMessage).indexOf(emailAES.getSubject()) > -1
+                        && emailAES.retryCount > 0) {
+
+                    LOGGER.info("=====>>" + receivedMessage.getSubject() + " for " + emailAES.getSubject());
+                    LOGGER.info("Retry sending emailAES, retryCount=" + emailAES.retryCount);
+                    emailAES.retryCount--;
+                    aesSecureEmailQueue.put(emailAES);
+                }
+            } catch (MessagingException | InterruptedException e) {
+                LOGGER.severe("=====>>" + e.getMessage());
+            }
+        });
+        executorService.shutdown();
+
     }
 }

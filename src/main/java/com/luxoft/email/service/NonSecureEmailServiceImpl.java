@@ -50,6 +50,7 @@ public class NonSecureEmailServiceImpl implements EmailService, Runnable {
                 Email queueEmail = queue.take();
                 SimpleMailMessage message = (SimpleMailMessage) getEmailBody(queueEmail);
                 mailSender.send(message);
+                LOGGER.info("=====>>" + "Message has been sent...");
             } catch (InterruptedException e) {
                 LOGGER.severe("=====>>" + e.getMessage());
             }

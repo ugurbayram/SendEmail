@@ -12,7 +12,8 @@ import java.util.logging.Logger;
 
 public interface EmailService {
 
-    final static Logger LOGGER = Logger.getLogger(EmailService.class.getName());
+    Logger LOGGER = Logger.getLogger(EmailService.class.getName());
+    int retryPeriod = 30000; //mail queue read period
     Object getEmailBody(Email email);
 
     /**
@@ -28,6 +29,11 @@ public interface EmailService {
     default String disclamer() {
         LOGGER.info(" Disclamer is not required");
         return "";
+    }
+
+    default void subscribeChannel() {
+        LOGGER.info(" Disclamer is not required");
+
     }
 
 }

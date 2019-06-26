@@ -23,7 +23,7 @@ public class AESSecureEmailServiceImpl implements EmailService, Runnable {
     private final static Logger LOGGER = Logger.getLogger(AESSecureEmailServiceImpl.class.getName());
     private BlockingQueue<Email> queue = null;
     private JavaMailSenderImpl mailSender;
-
+    private boolean failRetry = true;
 
     public void setQueue(BlockingQueue<Email> queue) {
         this.queue = queue;
@@ -35,7 +35,6 @@ public class AESSecureEmailServiceImpl implements EmailService, Runnable {
         MimeMessage message = mailSender.createMimeMessage();
         MimeMessageHelper helper = null;
         try {
-
             helper = new MimeMessageHelper(message, false, "utf-8");
             String mailMsg = email.getMsg();
             secure(mailMsg, "AES");
@@ -44,12 +43,10 @@ public class AESSecureEmailServiceImpl implements EmailService, Runnable {
             helper.setTo(email.getTo());
             helper.setSubject(email.getSubject());
             helper.setFrom(email.getFrom());
-
         } catch (MessagingException e) {
             LOGGER.severe("=====>>" + e.getMessage());
         }
         return message;
-
     }
 
     public void secure(String message, String level) {
@@ -69,12 +66,21 @@ public class AESSecureEmailServiceImpl implements EmailService, Runnable {
 
     @Override
     public void run() {
-        while (!queue.isEmpty()) {
+        while (failRetry) {
+            if (!queue.isEmpty()) {
+                try {
+                    Email queueEmail = (Email) queue.take();
+                    MimeMessage mimeMessage = (MimeMessage) getEmailBody(queueEmail);
+                    mailSender.send(mimeMessage);
+                    LOGGER.info("=====>>" + "Message has been sent...");
+                    if (queueEmail.retryCount <= 0)
+                        failRetry = false;
+                } catch (InterruptedException e) {
+                    LOGGER.severe("=====>>" + e.getMessage());
+                }
+            }
             try {
-                Email queueEmail = (Email) queue.take();
-                MimeMessage mimeMessage = (MimeMessage) getEmailBody(queueEmail);
-                mailSender.send(mimeMessage);
-
+                Thread.sleep(retryPeriod);
             } catch (InterruptedException e) {
                 LOGGER.severe("=====>>" + e.getMessage());
             }

@@ -25,6 +25,7 @@ public class DESSecureEmailServiceImpl implements EmailService, Runnable {
 
     private BlockingQueue<Email> queue = null;
     private JavaMailSenderImpl mailSender;
+    private boolean failRetry = true;
 
     public void setQueue(BlockingQueue<Email> queue) {
         this.queue = queue;
@@ -51,18 +52,27 @@ public class DESSecureEmailServiceImpl implements EmailService, Runnable {
         return message;
     }
 
-
     public void secure(String message, String level) {
         LOGGER.info("=====>>" + "Message has been encrypted with " + level + " 128 bit algorithm");
     }
 
     @Override
     public void run() {
-        while (!queue.isEmpty()) {
+        while (failRetry) {
+            if (!queue.isEmpty()) {
+                try {
+                    Email queueEmail = (Email) queue.take();
+                    MimeMessage mimeMessage = (MimeMessage) getEmailBody(queueEmail);
+                    mailSender.send(mimeMessage);
+                    LOGGER.info("=====>>" + "Message has been sent...");
+                    if (queueEmail.retryCount <= 0)
+                        failRetry = false;
+                } catch (InterruptedException e) {
+                    LOGGER.severe("=====>>" + e.getMessage());
+                }
+            }
             try {
-                Email queueEmail = (Email) queue.take();
-                MimeMessage mimeMessage = (MimeMessage) getEmailBody(queueEmail);
-                mailSender.send(mimeMessage);
+                Thread.sleep(retryPeriod);
             } catch (InterruptedException e) {
                 LOGGER.severe("=====>>" + e.getMessage());
             }

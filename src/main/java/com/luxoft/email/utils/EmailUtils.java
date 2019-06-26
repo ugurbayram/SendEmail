@@ -38,7 +38,7 @@ public class EmailUtils {
                 Integer.valueOf(properties.getProperty("MAX_RETRY_COUNT")));
     }
 
-    public static String getMailContent(MimeMessage message){
+    public static String getMailContent(MimeMessage message) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         String strContent = "";
         try {
