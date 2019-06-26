@@ -31,11 +31,12 @@ public class Main {
     private JavaMailSenderImpl mailSender = null;
 
     public Main() {
-        context = new ClassPathXmlApplicationContext("ApplicationContext.xml");
+
     }
 
     public static void main(String[] args) {
         // Channel to monitor sender's inbox.
+        context = new ClassPathXmlApplicationContext("ApplicationContext.xml");
         DirectChannel inputChannel = context.getBean("receiveChannel", DirectChannel.class);
         ExecutorService executorService = Executors.newFixedThreadPool(10);
 
