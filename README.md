@@ -12,7 +12,7 @@ Below email address is used during implementation.
 For a success scenario, 'EMAIL_TO' parameter should be updated in resources.Configuration.properties file. Once main method is executed, 4 emails (as described above) will be received in recipients inbox.
 _Note:_ AES and DES encryption require cipher private keys. A random string can be given. However, since we do not have control on SMTP server, the received mail will not be decrypted. 'security/Encrypt' class contains implementation both for AES and DES. However, due to mentioned reason, I have not used. Instead, in interface, there is a default 'secure' method, which is to give opportunity to each service implementation to implement required encryption algorithm. As of now, I have placed custom informative message. 
 
-For retry option, 'EMAIL_TO' parameter should be set to an invalid email address. In such case, the sender receives an email. 'receiveChannel' bean initiates the channel which keeps checking sender's inbox and notifies when such message is received. 
+For retry option, 'EMAIL_TO' parameter should be set to an invalid email address. In such case, the sender receives an email. 'receiveChannel' bean initiates the channel which keeps checking sender's inbox and notifies when such email is received. Upon an email receive, it is checked to which task this failure  belongs to (DES or AES in this case). Depending on the task, a new mail is set in to the queue and retryCount is decreased by 1. Those threads, which require a retry mechanism, checks their queue every 30 seconds. If an email is detected in queue, it is fetched and sent to the receiver. Same steps are repeated until configured retryCount is reached... 
 
 
 Requirement: 
